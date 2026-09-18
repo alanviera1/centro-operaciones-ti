@@ -13,7 +13,8 @@ def preparar_produccion():
     migrar_base()
     with aplicacion.app_context():
         cargar_datos(incluir_historial=False)
-    crear_usuarios(no_interactivo=True)
+    actualizar_credenciales = os.getenv('ROTAR_CREDENCIALES_INICIALES', 'false').lower() == 'true'
+    crear_usuarios(no_interactivo=True, actualizar_existentes=actualizar_credenciales)
     print('Esquema, servicio, componentes y usuarios preparados; sin históricos de demostración nuevos.')
 
 
