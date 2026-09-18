@@ -1,0 +1,52 @@
+{% macro estado(valor) -%}
+<span class="etiqueta estado-{{ valor|lower }}">{{ valor|etiqueta }}</span>
+{%- endmacro %}
+{% macro token() -%}
+<input type="hidden" name="token_formulario" value="{{ session.token_formulario }}">
+{%- endmacro %}
+{% macro paginacion(pagina) %}
+<nav class="paginacion" aria-label="Paginación de resultados">
+  <span>{{ pagina.total }} {{ 'registro' if pagina.total == 1 else 'registros' }} · página {{ pagina.page }} de {{ [pagina.pages, 1]|max }}</span>
+  <div>{% if pagina.has_prev %}<a class="boton secundario" href="{{ enlace_pagina(pagina.prev_num) }}">← Anterior</a>{% endif %}
+  {% for numero in pagina.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+    {% if numero %}<a class="numero-pagina {{ 'actual' if numero == pagina.page }}" href="{{ enlace_pagina(numero) }}" {% if numero == pagina.page %}aria-current="page"{% endif %}>{{ numero }}</a>{% else %}<span>…</span>{% endif %}
+  {% endfor %}
+  {% if pagina.has_next %}<a class="boton secundario" href="{{ enlace_pagina(pagina.next_num) }}">Siguiente →</a>{% endif %}</div>
+</nav>
+{% endmacro %}
+{% macro filtros_incidentes(componentes, historico=false) %}
+<form class="filtros" method="get">
+  <label class="busqueda">Código de incidente<input name="codigo" placeholder="INC-2026-…" maxlength="35" value="{{ request.args.get('codigo','') }}"></label>
+  {% if not historico %}<label>Estado<select name="estado"><option value="">Todos los operacionales</option>{% for valor in ['ABIERTO','EN_PROCESO','RESUELTO'] %}<option value="{{ valor }}" {{ 'selected' if request.args.get('estado') == valor }}>{{ valor|etiqueta }}</option>{% endfor %}</select></label>{% endif %}
+  <label>Prioridad<select name="prioridad"><option value="">Todas las prioridades</option>{% for valor in ['CRITICA','ALTA','MEDIA','BAJA'] %}<option value="{{ valor }}" {{ 'selected' if request.args.get('prioridad') == valor }}>{{ valor|etiqueta }}</option>{% endfor %}</select></label>
+  <label>Componente<select name="componente"><option value="">Todos los componentes</option>{% for componente in componentes %}<option value="{{ componente.id_componente }}" {{ 'selected' if request.args.get('componente') == componente.id_componente|string }}>{{ componente.nombre }}</option>{% endfor %}</select></label>
+  <button class="boton primario">Aplicar filtros</button><a class="limpiar" href="{{ url_for(request.endpoint) }}">Limpiar</a>
+</form>
+{% endmacro %}
+{% macro tabla_incidentes(incidentes, historico=false) %}
+<div class="tabla-contenedor">
+<table class="tabla-adaptable">
+  <thead><tr><th>Incidente</th><th>Componente</th><th>Prioridad</th><th>{{ 'Recuperación / duración' if historico else 'Estado' }}</th><th>{{ 'Cierre' if historico else 'Detectado' }}</th><th>{{ 'Responsable' if historico else 'Atención' }}</th></tr></thead>
+  <tbody>
+  {% for incidente in incidentes %}
+  <tr>
+    <td class="celda-identidad"><a class="codigo" href="{{ url_for('detalle_incidente', identificador=incidente.id_incidente) }}">{{ incidente.codigo_incidente }}</a><strong>{{ incidente.titulo }}</strong>
+      {% if incidente.demostracion %}<small>Histórico de demostración</small>{% endif %}{% if incidente.archivado %}<small class="archivo">Ciclo anterior · excluido de métricas</small>{% endif %}
+    </td>
+    <td data-etiqueta="Componente">{{ incidente.componente.nombre }}</td>
+    <td data-etiqueta="Prioridad">{{ estado(incidente.prioridad) }}</td>
+    {% if historico %}
+    <td data-etiqueta="Tiempos" class="celda-secundaria"><strong>{{ ((incidente.fecha_recuperacion - incidente.fecha_inicio).total_seconds() / 60)|numero(2) if incidente.fecha_recuperacion else '—' }} min</strong><small>Hasta recuperar</small><small>{{ ((incidente.fecha_cierre - incidente.fecha_inicio).total_seconds() / 60)|numero(2) }} min hasta cierre</small></td>
+    <td data-etiqueta="Cierre"><span>{{ incidente.fecha_cierre|fecha }}</span><small>Resuelto: {{ incidente.fecha_resolucion|fecha }}</small></td>
+    <td data-etiqueta="Responsable"><span>{{ incidente.responsable.nombre if incidente.responsable else 'Sin atribución previa' }}</span><small>{{ incidente.acciones|length }} acciones registradas</small><a href="{{ url_for('detalle_incidente', identificador=incidente.id_incidente) }}">Ver trazabilidad →</a></td>
+    {% else %}
+    <td data-etiqueta="Estado">{{ estado('SERVICIO_RECUPERADO' if incidente.estado == 'EN_PROCESO' and incidente.fecha_recuperacion else incidente.estado) }}</td>
+    <td data-etiqueta="Detectado" class="celda-secundaria">{{ incidente.fecha_inicio|fecha }}</td>
+    <td class="celda-enlace"><a class="boton secundario" href="{{ url_for('detalle_incidente', identificador=incidente.id_incidente) }}">Ver detalle →</a></td>
+    {% endif %}
+  </tr>
+  {% else %}<tr class="fila-vacia"><td colspan="6"><div class="vacio"><span>✓</span><strong>{{ 'Sin registros para estos filtros' if historico else 'No hay incidentes pendientes en esta vista' }}</strong><p>{{ 'Prueba otros filtros o consulta ciclos anteriores.' if historico else 'Los incidentes nuevos aparecerán aquí para su atención.' }}</p></div></td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}

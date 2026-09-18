@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import estado, paginacion with context %}
+{% block titulo %}Registro de eventos{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><div><span class="sobre-titulo">MONITOREO Y CORRELACIÓN</span><h1>Registro de eventos</h1><p>Señales técnicas del servicio y su relación con los incidentes.</p></div><span class="contador">{{ pagina.total }} eventos</span></div>
+<form class="filtros" method="get">
+  <label>Nivel<select name="nivel"><option value="">Todos los niveles</option>{% for valor in ['INFORMATIVO','ADVERTENCIA','CRITICO'] %}<option value="{{ valor }}" {{ 'selected' if request.args.get('nivel') == valor }}>{{ valor|etiqueta }}</option>{% endfor %}</select></label>
+  <label>Componente<select name="componente"><option value="">Todos los componentes</option>{% for componente in componentes %}<option value="{{ componente.id_componente }}" {{ 'selected' if request.args.get('componente') == componente.id_componente|string }}>{{ componente.nombre }}</option>{% endfor %}</select></label>
+  <label>Fecha · Lima<input type="date" name="fecha" value="{{ request.args.get('fecha','') }}"></label>
+  <button class="boton primario">Aplicar filtros</button><a class="limpiar" href="{{ url_for('listar_eventos') }}">Limpiar</a>
+</form>
+<section class="panel"><div class="tabla-contenedor"><table class="tabla-adaptable">
+<thead><tr><th>Señal detectada</th><th>Componente</th><th>Nivel</th><th>Fecha · Lima</th><th>Correlación</th></tr></thead>
+<tbody>{% for evento in pagina.items %}<tr>
+  <td class="celda-identidad"><strong>{{ evento.descripcion }}</strong><small>{{ evento.tipo }}{% if evento.archivado %} · Archivado{% endif %}</small></td>
+  <td data-etiqueta="Componente">{{ evento.componente.nombre }}</td><td data-etiqueta="Nivel">{{ estado(evento.nivel) }}</td><td data-etiqueta="Fecha">{{ evento.fecha_hora|fecha }}</td>
+  <td data-etiqueta="Correlación">{% if evento.incidente %}<a class="codigo" href="{{ url_for('detalle_incidente', identificador=evento.id_incidente) }}">{{ evento.incidente.codigo_incidente }}</a>{% else %}<span>Sin incidente</span>{% endif %}<small>{{ 'Atendido' if evento.atendido else 'En observación' }}</small></td>
+</tr>{% else %}<tr class="fila-vacia"><td colspan="5"><div class="vacio"><strong>No hay eventos para estos filtros</strong></div></td></tr>{% endfor %}</tbody></table></div></section>
+{{ paginacion(pagina) }}
+<p class="nota">{{ regla_correlacion }} Los informativos se conservan como evidencia.</p>
+{% endblock %}

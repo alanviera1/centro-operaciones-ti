@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Vista general{% endblock %} · Centro de Operaciones TI</title>
+  <script src="{{ url_for('static', filename='js/tema.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+  <script defer src="{{ url_for('static', filename='js/aplicacion.js') }}"></script>
+  {% block recursos %}{% endblock %}
+</head>
+<body class="{{ 'sin-sesion' if not current_user.is_authenticated }}">
+  <a class="saltar" href="#contenido">Ir al contenido</a>
+  {% if current_user.is_authenticated %}
+  <aside class="barra-lateral">
+    <a class="marca" href="{{ url_for('inicio') }}">CENTRO DE OPERACIONES TI<small>GESTIÓN DEL SERVICIO TI</small></a>
+    <div class="menu-titulo">CENTRO DE OPERACIONES</div>
+    <nav aria-label="Navegación principal">
+      {% for destino, simbolo, nombre in [('inicio','▦','Vista general'),('listar_incidentes','◈','Incidentes'),('listar_eventos','≋','Registro de eventos'),('laboratorio','◇','Simulador'),('historial','◷','Historial')] %}
+      {% if destino != 'laboratorio' or entorno_academico %}
+      <a href="{{ url_for(destino) }}" class="{{ 'seleccionado' if request.endpoint == destino or (destino == 'listar_incidentes' and request.endpoint == 'detalle_incidente') }}" {% if request.endpoint == destino %}aria-current="page"{% endif %}><span aria-hidden="true">{{ simbolo }}</span>{{ nombre }}</a>
+      {% endif %}
+      {% endfor %}
+      {% if current_user.rol == 'SUPERVISOR' %}<a href="{{ url_for('auditoria') }}" class="{{ 'seleccionado' if request.endpoint == 'auditoria' }}"><span aria-hidden="true">☷</span>Auditoría</a>{% endif %}
+    </nav>
+    <div class="usuario-actual">
+      <span class="avatar" aria-hidden="true">{{ current_user.nombre[0] }}</span>
+      <div><strong>{{ current_user.nombre }}</strong><small>{{ current_user.rol|etiqueta }}</small></div>
+      <form method="post" action="{{ url_for('autenticacion.cerrar_sesion') }}">
+        <input type="hidden" name="token_formulario" value="{{ session.token_formulario }}">
+        <button class="salir" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión">Salir ↗</button>
+      </form>
+    </div>
+  </aside>
+  {% endif %}
+  <div class="principal">
+    <header class="barra-superior">
+      <span>Centro de Operaciones de Servicios TI</span>
+      <div class="herramientas"><span class="insignia-entorno">{{ 'Entorno académico' if entorno_academico else 'Operaciones' }}</span><button type="button" class="boton-tema" aria-label="Activar modo oscuro" title="Cambiar tema">☾</button></div>
+    </header>
+    <div class="avisos" aria-live="polite" aria-atomic="false">
+      {% for categoria, mensaje in get_flashed_messages(with_categories=true) %}
+      <div class="toast {{ categoria }}" role="{{ 'alert' if categoria == 'error' else 'status' }}"><span>{{ mensaje }}</span><button type="button" aria-label="Cerrar notificación">×</button></div>
+      {% endfor %}
+    </div>
+    <main id="contenido">{% block contenido %}{% endblock %}</main>
+    <footer>CENTRO DE OPERACIONES TI · Gestión del Servicio TI</footer>
+  </div>
+  <dialog id="confirmacion" aria-labelledby="titulo-confirmacion" aria-describedby="texto-confirmacion">
+    <div class="modal-contenido"><span class="sobre-titulo">CONFIRMACIÓN DE OPERACIÓN</span><h2 id="titulo-confirmacion">Confirmar acción</h2><p id="texto-confirmacion"></p>
+    <div class="acciones-modal"><button type="button" class="boton secundario" id="cancelar-confirmacion">Cancelar</button><button type="button" class="boton primario" id="aceptar-confirmacion">Confirmar</button></div></div>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import paginacion, estado with context %}
+{% block titulo %}Ciclos anteriores{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina cabecera-ciclos">
+  <div><span class="sobre-titulo">EVIDENCIAS CONSERVADAS</span><h1>Historial de ciclos de demostración</h1><p>Cada ciclo conserva los códigos, fechas, responsables y estados originales. Sus registros no intervienen en las métricas actuales.</p></div>
+  <a class="boton secundario" href="{{ url_for('historial') }}">← Historial actual</a>
+</div>
+{% if not archivo %}
+<div class="ciclos-grid">
+{% for lote in pagina.items %}
+  <article class="panel ciclo-tarjeta">
+    <div class="ciclo-cabecera"><div><span class="sobre-titulo">CICLO DE DEMOSTRACIÓN</span><h2>Ciclo {{ lote.id_archivo }}</h2></div><time>{{ lote.fecha_hora|fecha }}</time></div>
+    <div class="ciclo-cifras">
+      <div><strong>{{ lote.contenido.incidentes|length }}</strong><span>{{ 'incidente' if lote.contenido.incidentes|length == 1 else 'incidentes' }}</span></div>
+      <div><strong>{{ lote.contenido.eventos|length }}</strong><span>{{ 'evento' if lote.contenido.eventos|length == 1 else 'eventos' }}</span></div>
+      <div><strong>{{ lote.contenido.acciones_incidente|length }}</strong><span>{{ 'acción' if lote.contenido.acciones_incidente|length == 1 else 'acciones' }}</span></div>
+    </div>
+    <div class="ciclo-codigos"><span class="sobre-titulo">CÓDIGOS DE INCIDENTE</span><div>{% for incidente in lote.contenido.incidentes %}<span class="ciclo-codigo">{{ incidente.codigo_incidente }}</span>{% else %}<span class="nota">Sin incidentes en este ciclo</span>{% endfor %}</div></div>
+    <a class="boton secundario ciclo-enlace" href="{{ url_for('detalle_archivo', identificador=lote.id_archivo) }}">Ver evidencia del ciclo →</a>
+  </article>
+{% else %}
+  <section class="panel ciclo-vacio"><h2>Todavía no hay ciclos anteriores</h2><p>El primer restablecimiento conservará aquí la evidencia de la exposición.</p></section>
+{% endfor %}
+</div>
+{{ paginacion(pagina) }}
+{% else %}
+<section class="panel ciclo-resumen">
+  <div class="titulo-panel"><div><span class="sobre-titulo">EVIDENCIA DEL CICLO</span><h2>Ciclo {{ archivo.id_archivo }}</h2><p>Conservado el {{ archivo.fecha_hora|fecha }}</p></div><span class="contador">{{ archivo.contenido.incidentes|length }} {{ 'incidente' if archivo.contenido.incidentes|length == 1 else 'incidentes' }}</span></div>
+  <div class="ciclo-cifras">
+    <div><strong>{{ archivo.contenido.incidentes|length }}</strong><span>{{ 'incidente' if archivo.contenido.incidentes|length == 1 else 'incidentes' }}</span></div>
+    <div><strong>{{ archivo.contenido.eventos|length }}</strong><span>{{ 'evento' if archivo.contenido.eventos|length == 1 else 'eventos' }}</span></div>
+    <div><strong>{{ archivo.contenido.acciones_incidente|length }}</strong><span>{{ 'acción' if archivo.contenido.acciones_incidente|length == 1 else 'acciones' }}</span></div>
+  </div>
+  <p class="ciclo-motivo">Fin del ciclo de demostración. Los estados y tiempos se conservan tal como estaban al restablecer el entorno. Los incidentes pendientes conservan su estado original.</p>
+</section>
+{% set usuarios = {} %}{% for usuario in archivo.contenido.usuarios %}{% set _ = usuarios.update({usuario.id_usuario: usuario.nombre}) %}{% endfor %}
+<div class="ciclo-detalle-grid">
+{% for incidente in archivo.contenido.incidentes %}
+  <section class="panel ciclo-incidente" id="incidente-{{ incidente.id_incidente }}">
+    <div class="titulo-panel"><div><span class="sobre-titulo">INCIDENTE {{ incidente.codigo_incidente }}</span><h2>{{ incidente.titulo }}</h2></div><div class="ciclo-estados">{{ estado(incidente.estado) }} {{ estado(incidente.prioridad) }}</div></div>
+    <div class="ciclo-datos">
+      <div><span>Detección</span><strong>{{ incidente.fecha_inicio|fecha }}</strong></div>
+      <div><span>Recuperación</span><strong>{{ incidente.fecha_recuperacion|fecha }}</strong></div>
+      <div><span>Resolución</span><strong>{{ incidente.fecha_resolucion|fecha }}</strong></div>
+      <div><span>Cierre</span><strong>{{ incidente.fecha_cierre|fecha }}</strong></div>
+      <div><span>Responsable</span><strong>{{ usuarios.get(incidente.id_responsable, 'Sin asignar') }}</strong></div>
+    </div>
+    <div class="ciclo-seccion"><h3>Línea de tiempo</h3></div>
+    <ol class="bitacora">{% for accion in archivo.contenido.acciones_incidente if accion.id_incidente == incidente.id_incidente %}<li><span class="hito"></span><div><time>{{ accion.fecha_hora|fecha }}</time><h3>{{ accion.accion }}</h3><strong class="autor">{{ usuarios.get(accion.id_usuario, 'Sistema / sin atribución') }}</strong><p>{{ accion.resultado }}</p></div></li>{% else %}<li class="nota">Sin acciones registradas.</li>{% endfor %}</ol>
+    {% for interrupcion in archivo.contenido.interrupciones if interrupcion.id_incidente == incidente.id_incidente %}<p class="ciclo-interrupcion">Interrupción: {{ interrupcion.fecha_inicio|fecha }} → {{ interrupcion.fecha_fin|fecha }} · {{ interrupcion.minutos_caida }} minutos registrados</p>{% endfor %}
+  </section>
+{% else %}
+  <section class="panel ciclo-vacio"><h2>Sin incidentes en este ciclo</h2><p>Consulta los eventos y la auditoría conservados a continuación.</p></section>
+{% endfor %}
+</div>
+<section class="panel ciclo-tabla"><div class="titulo-panel"><div><h2>Eventos del ciclo</h2><p>Señales técnicas conservadas con su nivel y fecha.</p></div><span class="contador">{{ archivo.contenido.eventos|length }} {{ 'evento' if archivo.contenido.eventos|length == 1 else 'eventos' }}</span></div><div class="tabla-contenedor"><table class="tabla-adaptable"><thead><tr><th>Evento</th><th>Nivel</th><th>Fecha · Lima</th></tr></thead><tbody>{% for evento in archivo.contenido.eventos %}<tr><td class="celda-identidad">{{ evento.descripcion }}</td><td data-etiqueta="Nivel">{{ estado(evento.nivel) }}</td><td data-etiqueta="Fecha">{{ evento.fecha_hora|fecha }}</td></tr>{% else %}<tr><td colspan="3">Sin eventos en este ciclo.</td></tr>{% endfor %}</tbody></table></div></section>
+{% if current_user.rol == 'SUPERVISOR' %}<section class="panel ciclo-tabla"><div class="titulo-panel"><div><h2>Auditoría del ciclo</h2><p>Operaciones conservadas como evidencia histórica.</p></div><span class="contador">{{ archivo.contenido.auditoria|length }} registros</span></div><div class="tabla-contenedor"><table class="tabla-adaptable"><thead><tr><th>Acción</th><th>Usuario</th><th>Referencia</th><th>Fecha · Lima</th></tr></thead><tbody>{% for registro in archivo.contenido.auditoria %}<tr><td class="celda-identidad">{{ registro.accion|etiqueta }}</td><td data-etiqueta="Usuario">{{ usuarios.get(registro.id_usuario,'Sistema') }}</td><td data-etiqueta="Referencia">{{ registro.referencia or '—' }}</td><td data-etiqueta="Fecha">{{ registro.fecha_hora|fecha }}</td></tr>{% else %}<tr><td colspan="4">Sin registros de auditoría en este ciclo.</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
+<a class="boton secundario ciclo-volver" href="{{ url_for('archivo_academico') }}">← Todos los ciclos</a>
+{% endif %}
+{% endblock %}

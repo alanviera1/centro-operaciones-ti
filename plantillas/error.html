@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block titulo %}
+  Operación no disponible
+{% endblock %}
+{% block contenido %}
+  <section class="panel pagina-error">
+    <div class="sobre-titulo">
+      {{ codigo }}
+    </div>
+    <h1>
+      No se pudo completar la solicitud
+    </h1>
+    <p>
+      {{ mensaje }}
+    </p>
+    <a class="boton primario" href="{{ url_for('inicio') }}">
+      Volver al inicio
+    </a>
+  </section>
+{% endblock %}

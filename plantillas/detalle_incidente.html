@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import estado, token with context %}
+{% block titulo %}{{ incidente.codigo_incidente }}{% endblock %}
+{% block contenido %}
+<a class="volver" href="{{ url_for('historial' if incidente.estado == 'CERRADO' else 'listar_incidentes') }}">← Volver a {{ 'historial' if incidente.estado == 'CERRADO' else 'incidentes' }}</a>
+<div class="cabecera-pagina detalle-cabecera"><div><span class="sobre-titulo codigo">{{ incidente.codigo_incidente }}</span><h1>{{ incidente.titulo }}</h1><p>{{ incidente.componente.nombre }}</p></div><div class="estados-cabecera">{{ estado(incidente.prioridad) }} {{ estado('SERVICIO_RECUPERADO' if incidente.estado == 'EN_PROCESO' and incidente.fecha_recuperacion else incidente.estado) }}</div></div>
+{% if incidente.archivado %}<div class="nota-contexto">Ciclo anterior. Este incidente se conserva como evidencia y no interviene en las métricas actuales.</div>{% endif %}
+{% if incidente.demostracion %}<div class="nota-contexto">Histórico de demostración inicial. No corresponde a una empresa real.</div>{% endif %}
+<p class="descripcion-incidente">{{ incidente.descripcion }}</p>
+<div class="progreso-incidente" aria-label="Etapas del incidente">
+  {% for nombre, cumplido in [('Detectado',true),('En proceso',incidente.estado != 'ABIERTO'),('Servicio recuperado',incidente.fecha_recuperacion),('Resuelto',incidente.fecha_resolucion),('Cerrado',incidente.fecha_cierre)] %}
+  <div class="{{ 'completo' if cumplido }}"><span>{{ '✓' if cumplido else loop.index }}</span>{{ nombre }}</div>
+  {% endfor %}
+</div>
+<div class="indicadores detalle-metricas">
+  <article class="indicador"><span>Impacto × urgencia</span><strong>{{ incidente.impacto }} <small>×</small> {{ incidente.urgencia }} <small>= {{ incidente.impacto * incidente.urgencia }}</small></strong><div>{{ estado(incidente.prioridad) }}</div></article>
+  <article class="indicador"><span>Usuarios afectados</span><strong>{{ incidente.usuarios_afectados|numero }}</strong><div>Estimación al detectar la falla</div></article>
+  <article class="indicador"><span>Operaciones fallidas</span><strong>{{ incidente.operaciones_fallidas|numero }}</strong><div>Volumen simulado</div></article>
+  <article class="indicador"><span>Impacto económico estimado</span><strong class="dinero">S/ {{ incidente.perdida_estimada|numero(2) }}</strong><div>Estimación simulada{% if incidente.operaciones_fallidas %} · {{ incidente.operaciones_fallidas }} × S/ {{ (incidente.perdida_estimada / incidente.operaciones_fallidas)|numero(2) }}{% endif %}</div></article>
+</div>
+<div class="banda-sla"><div><small>SLA objetivo</small><strong>{{ incidente.componente.servicio.sla_objetivo|numero(2) }} %</strong></div><div><small>Disponibilidad actual del servicio</small><strong>{{ metricas.disponibilidad|numero(3) }} %</strong></div><div><small>Caída de este incidente</small><strong>{{ caida|numero(2) }} min</strong></div><div>{{ estado(metricas.estado_sla) }}<small>SLA del período actual</small></div></div>
+<div class="rejilla-operaciones">
+<section class="panel"><div class="titulo-panel"><div><h2>Atención y recuperación</h2><p>Responsable: {{ incidente.responsable.nombre if incidente.responsable else 'Sin asignar' }}</p></div></div>
+  <div class="acciones">
+    {% for valor, nombre in acciones %}
+      {% if valor != 'cerrar' or current_user.rol == 'SUPERVISOR' %}
+      <form method="post" action="{{ url_for('realizar_accion', identificador=incidente.id_incidente) }}" {% if valor in ['activar_respaldo','resolver','cerrar','reiniciar'] %}data-confirmar="{{ 'Se restaurará el componente principal, se desactivará la contingencia y se cerrará el incidente.' if valor == 'cerrar' else 'Esta acción actualizará el estado del incidente y quedará registrada a tu nombre en la bitácora.' }}" data-titulo="{{ nombre }}" data-boton="{{ nombre }}"{% endif %}>
+        {{ token() }}<input type="hidden" name="accion" value="{{ valor }}"><button type="submit" class="boton {{ 'primario' if loop.first else 'secundario' }}">{{ nombre }}</button>
+      </form>
+      {% endif %}
+    {% endfor %}
+    {% if incidente.estado == 'RESUELTO' and current_user.rol == 'OPERADOR' %}<p class="nota">Incidente resuelto. Pendiente de validación y cierre por supervisor.</p>{% elif not acciones %}<p class="nota">No hay acciones pendientes para este incidente.</p>{% endif %}
+  </div>
+  <div class="explicacion"><strong>Recuperar, verificar y cerrar</strong><p>La recuperación detiene la caída del servicio, incluso mediante contingencia. La resolución verifica la recuperación. El supervisor normaliza el componente principal y la contingencia al cerrar.</p><span>{{ estado(incidente.componente.estado) }} <small>Estado actual del componente</small></span></div>
+</section>
+<section class="panel"><div class="titulo-panel"><h2>Tiempos registrados</h2><span class="nota">Lima · UTC−5</span></div><dl class="resumen-sla tiempos">
+{% for nombre, fecha in [('Detección',incidente.fecha_inicio),('Recuperación',incidente.fecha_recuperacion),('Resolución',incidente.fecha_resolucion),('Cierre',incidente.fecha_cierre)] %}<div><dt>{{ nombre }}</dt><dd>{{ fecha|fecha }}</dd></div>{% endfor %}
+</dl><p class="nota acolchado">La caída incluye minutos iniciales del simulador. El tiempo de recuperación se mide desde la detección.</p></section>
+</div>
+<div class="rejilla-operaciones">
+<section class="panel"><div class="titulo-panel"><div><h2>Línea de tiempo</h2><p>Acciones, responsables y resultados.</p></div><span class="contador">{{ incidente.acciones|length }} {{ 'registro' if incidente.acciones|length == 1 else 'registros' }}</span></div>
+<ol class="bitacora">{% for accion in incidente.acciones %}<li><span class="hito"></span><div><time>{{ accion.fecha_hora|fecha }}</time><h3>{{ accion.accion }}</h3><strong class="autor">{{ accion.usuario.rol|etiqueta ~ ': ' ~ accion.usuario.nombre if accion.usuario else 'Sistema / sin atribución registrada' }}</strong><p>{% if accion.accion == 'Incidente generado' and accion.resultado.startswith('Regla:') %}{{ regla_correlacion }} {{ accion.resultado|replace('Regla:', 'Eventos observados al crear:', 1)|replace(' o ', ' y ', 1) }}{% else %}{{ accion.resultado }}{% endif %}</p></div></li>{% endfor %}</ol>
+</section>
+<div>
+<section class="panel"><div class="titulo-panel"><div><h2>Matriz de prioridad</h2><p>Impacto × urgencia · escala de 1 a 3</p></div></div>
+<div class="matriz-contenedor"><table class="matriz"><caption>Filas: impacto · Columnas: urgencia</caption><thead><tr><th scope="col">Impacto</th><th scope="col">Baja<br>1</th><th scope="col">Media<br>2</th><th scope="col">Alta<br>3</th></tr></thead><tbody>
+{% for impacto, nombre in [(1,'Bajo'),(2,'Medio'),(3,'Alto')] %}<tr><th scope="row">{{ nombre }} · {{ impacto }}</th>{% for urgencia in [1,2,3] %}<td class="{{ 'celda-actual' if impacto == incidente.impacto and urgencia == incidente.urgencia }}">{{ estado(calcular_prioridad(impacto, urgencia)) }}{% if impacto == incidente.impacto and urgencia == incidente.urgencia %}<small>Este incidente</small>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+</tbody></table></div><p class="nota acolchado">1–2: baja · 3–4: media · 6: alta · 9: crítica. Clasificación por reglas explícitas.</p>
+</section>
+<section class="panel"><div class="titulo-panel"><h2>Eventos correlacionados</h2><span class="contador">{{ incidente.eventos|length }}</span></div><div class="lista-eventos">{% for evento in incidente.eventos %}<div class="evento"><span class="punto {{ evento.nivel|lower }}"></span><div><strong>{{ evento.descripcion }}</strong><small>{{ evento.fecha_hora|fecha }} · {{ 'Atendido' if evento.atendido else 'En observación' }}</small></div>{{ estado(evento.nivel) }}</div>{% endfor %}</div></section>
+</div>
+</div>
+{% endblock %}

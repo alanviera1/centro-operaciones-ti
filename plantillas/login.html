@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import token with context %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block contenido %}
+<div class="acceso">
+  <section class="acceso-presentacion">
+    <div class="marca">CENTRO DE OPERACIONES TI<small>GESTIÓN DEL SERVICIO TI</small></div>
+    <span class="sobre-titulo">CONTINUIDAD · CONTROL · TRAZABILIDAD</span>
+    <h1>Cada señal cuenta.<br>Cada acción queda registrada.</h1>
+    <p>Centro de Operaciones de Servicios TI basado en prácticas de ITIL.</p>
+    <div class="acceso-flujo"><span>01 <strong>Detectar</strong></span><span>02 <strong>Priorizar</strong></span><span>03 <strong>Restaurar</strong></span></div>
+  </section>
+  <section class="acceso-formulario">
+    <span class="sobre-titulo">ACCESO AL CENTRO DE OPERACIONES</span>
+    <h2>Iniciar sesión</h2><p>Ingresa con tu cuenta de operador o supervisor.</p>
+    <form method="post" action="{{ url_for('autenticacion.iniciar_sesion') }}">
+      {{ token() }}
+      <label for="correo">Correo</label><input id="correo" name="correo" type="email" maxlength="180" autocomplete="username" required autofocus>
+      <label for="contrasena">Contraseña</label><input id="contrasena" name="contrasena" type="password" maxlength="128" autocomplete="current-password" required>
+      <button class="boton primario" type="submit">Iniciar sesión →</button>
+    </form>
+    <p class="nota">Acceso administrado. Las operaciones se registran con el usuario responsable.</p>
+  </section>
+</div>
+{% endblock %}

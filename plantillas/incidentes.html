@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import tabla_incidentes, filtros_incidentes, paginacion with context %}
+{% block titulo %}Incidentes{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><div><span class="sobre-titulo">OPERACIÓN DEL SERVICIO</span><h1>Incidentes</h1><p>Atiende las fallas activas y verifica la recuperación del servicio.</p></div><span class="contador">{{ pagina.total }} por atender o cerrar</span></div>
+{{ filtros_incidentes(componentes) }}
+<section class="panel"><div class="titulo-panel"><h2>Bandeja operacional</h2><span class="nota">Abiertos · En proceso · Resueltos pendientes de cierre</span></div>{{ tabla_incidentes(pagina.items) }}</section>
+{{ paginacion(pagina) }}
+{% endblock %}

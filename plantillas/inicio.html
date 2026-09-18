@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import estado, token, tabla_incidentes with context %}
+{% block contenido %}
+  <div class="cabecera-pagina">
+    <div>
+      <div class="sobre-titulo">
+        OBSERVABILIDAD Y CONTINUIDAD
+      </div>
+      <h1>
+        Vista general del servicio
+      </h1>
+      <p>
+        De la señal técnica a la recuperación del servicio.
+      </p>
+    </div>
+    <a class="boton primario" href="{{ url_for('servicio_monitoreado') }}">Ver servicio monitoreado</a>
+    <a class="boton secundario" href="{{ url_for('inicio') }}">
+      ↻ Actualizar datos
+    </a>
+  </div>
+  <section class="servicio-resumen">
+    <div class="icono-servicio">
+      ▤
+    </div>
+    <div>
+      <small>
+        SERVICIO MONITOREADO
+      </small>
+      <h2>
+        {{ servicio.nombre }}
+      </h2>
+      <p>
+        Conciertos de alta demanda · {{ servicio.componentes|length }} componentes
+      </p>
+    </div>
+    <div class="estado-servicio">
+      {{ estado(servicio.estado) }}
+      <small>
+        Estado derivado de sus componentes
+      </small>
+    </div>
+  </section>
+  <div class="indicadores">
+    <article class="indicador">
+      <span>
+        Disponibilidad
+      </span>
+      <strong>
+        {{ metricas.disponibilidad|numero(3) }}
+        <small>
+          %
+        </small>
+      </strong>
+      <div>
+        {{ estado(metricas.estado_sla) }}
+        <small>
+          SLA {{ servicio.sla_objetivo|numero(2) }} %
+        </small>
+      </div>
+    </article>
+    <article class="indicador">
+      <span>
+        Incidentes por atender o cerrar
+      </span>
+      <strong>
+        {{ metricas.cantidad_activos + metricas.pendientes }}
+        <small>
+          {{ 'caso' if metricas.cantidad_activos + metricas.pendientes == 1 else 'casos' }}
+        </small>
+      </strong>
+      <div>
+        <span class="punto azul">
+        </span>
+        {{ metricas.cantidad_activos }} {{ 'activo' if metricas.cantidad_activos == 1 else 'activos' }} · {{ metricas.pendientes }} {{ 'resuelto pendiente de cierre' if metricas.pendientes == 1 else 'resueltos pendientes de cierre' }}
+      </div>
+    </article>
+    <article class="indicador">
+      <span>
+        Usuarios afectados
+      </span>
+      <strong>
+        {{ metricas.usuarios|numero }}
+        <small>
+          usuarios
+        </small>
+      </strong>
+      <div>
+        Estimación simulada · fallas sin recuperar
+      </div>
+    </article>
+    <article class="indicador">
+      <span>
+        Tiempo de recuperación
+      </span>
+      <strong>
+        {{ metricas.promedio|numero(2) }}
+        <small>
+          min
+        </small>
+      </strong>
+      <div>
+        Promedio hasta restaurar el servicio
+      </div>
+    </article>
+  </div>
+  <div class="rejilla-operaciones">
+    <section class="panel">
+      <div class="titulo-panel">
+        <div>
+          <h2>
+            Salud de los componentes
+          </h2>
+          <p>
+            Infraestructura del servicio de venta
+          </p>
+        </div>
+        <span class="contador">
+          {{ servicio.componentes|length }} COMPONENTES
+        </span>
+      </div>
+      <div class="componentes">
+        {% for componente in servicio.componentes %}
+          <div class="componente">
+            <span class="icono-componente">
+              {{ {'WEB':'▤', 'WEB_RESPALDO':'▤', 'BD':'▥', 'PAGOS':'▣', 'PAGOS_ALTERNATIVA':'▣', 'AUTENTICACION':'◇'}[componente.tipo] }}
+            </span>
+            <div>
+              <strong>
+                {{ componente.nombre }}
+              </strong>
+              <small>
+                {{ 'Contingencia disponible' if componente.tipo in ['WEB_RESPALDO','PAGOS_ALTERNATIVA'] else 'Componente principal' }}
+              </small>
+            </div>
+            {{ estado(componente.estado) }}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel panel-sla">
+      <div class="titulo-panel">
+        <div>
+          <h2>
+            Compromiso de disponibilidad
+          </h2>
+          <p>
+            Período móvil de {{ (metricas.minutos / 1440)|numero }} días
+          </p>
+        </div>
+      </div>
+      <div class="sla-valor">
+        {{ servicio.sla_objetivo|numero(2) }}
+        <span>
+          %
+        </span>
+        <small>
+          SLA OBJETIVO <abbr tabindex="0" role="img" aria-label="SLA: Acuerdo de Nivel de Servicio. Compara el objetivo con la disponibilidad del período según el downtime." title="SLA — Acuerdo de Nivel de Servicio. Compara el objetivo con la disponibilidad del período según el downtime.">ⓘ</span>
+        </small>
+      </div>
+      <div class="medidor">
+        <span style="width: {{ ([100, metricas.caida / metricas.presupuesto * 100]|min) if metricas.presupuesto else 0 }}%" class="{{ 'riesgo' if metricas.estado_sla != 'CUMPLIDO' }}">
+        </span>
+      </div>
+      <dl class="resumen-sla">
+        <div>
+          <dt>
+            Tiempo de caída acumulado
+          </dt>
+          <dd>
+            {{ metricas.caida|numero(2) }} min
+          </dd>
+        </div>
+        <div>
+          <dt>
+            Caída máxima permitida
+          </dt>
+          <dd>
+            {{ metricas.presupuesto|numero(2) }} min
+          </dd>
+        </div>
+        <div>
+          <dt>
+            Margen disponible
+          </dt>
+          <dd>
+            {{ metricas.restante|numero(2) }} min
+          </dd>
+        </div>
+      </dl>
+      <p class="nota">
+        Los intervalos simultáneos se cuentan una sola vez. Las caídas abiertas avanzan con el reloj. {% if metricas.en_riesgo %}<strong>Margen en riesgo: se consumió al menos el 80 %.</strong>{% endif %}
+      </p>
+    </section>
+  </div>
+  <section class="panel">
+    <div class="titulo-panel">
+      <div>
+        <h2>
+          Incidentes que requieren atención
+        </h2>
+        <p>
+          Abiertos, en proceso y resueltos pendientes de cierre · los seis más prioritarios
+        </p>
+      </div>
+      <a href="{{ url_for('listar_incidentes') }}">
+        Ver todos →
+      </a>
+    </div>
+    {{ tabla_incidentes(metricas.activos) }}
+  </section>
+  <div class="rejilla-operaciones inferior">
+    <section class="panel">
+      <div class="titulo-panel">
+        <div>
+          <h2>
+            Eventos recientes
+          </h2>
+          <p>
+            Últimas señales del servicio
+          </p>
+        </div>
+        <a href="{{ url_for('listar_eventos') }}">
+          Ver registro →
+        </a>
+      </div>
+      <div class="lista-eventos">
+        {% for evento in eventos %}
+          <div class="evento">
+            <span class="punto {{ evento.nivel|lower }}">
+            </span>
+            <div>
+              <strong>
+                {{ evento.descripcion }}
+              </strong>
+              <small>
+                {{ evento.componente.nombre }} · {{ evento.fecha_hora|fecha }}
+              </small>
+            </div>
+            {{ estado(evento.nivel) }}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="titulo-panel">
+        <div>
+          <h2>
+            Distribución de incidentes
+          </h2>
+          <p>
+            Registrados dentro del período de disponibilidad
+          </p>
+        </div>
+      </div>
+      <div class="distribucion">
+        {% for prioridad, cantidad in metricas.por_prioridad.items() %}
+          <div>
+            <span>
+              {{ estado(prioridad) }}
+            </span>
+            <meter min="0" max="{{ [1, metricas.por_prioridad.values()|sum]|max }}" value="{{ cantidad }}">
+              {{ cantidad }}
+            </meter>
+            <strong>
+              {{ cantidad }}
+            </strong>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="por-componente">
+        {% for nombre, cantidad in metricas.por_componente.items() %}
+          <div>
+            <span>
+              {{ nombre }}
+            </span>
+            <strong>
+              {{ cantidad }}
+            </strong>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+  <p class="nota">Período móvil: {{ metricas.inicio|fecha }} — {{ metricas.fin|fecha }} · Hora de Lima. Las métricas incluyen los históricos de demostración no archivados. Última consulta: {{ metricas.fin|fecha }}.</p>
+{% endblock %}

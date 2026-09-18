@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import token with context %}
+{% block titulo %}Servicio monitoreado{% endblock %}
+{% block recursos %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/servicio_monitoreado.css') }}">
+<script defer src="{{ url_for('static', filename='js/servicio_monitoreado.js') }}"></script>
+{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina ritmo-contexto"><div><span class="sobre-titulo">SERVICIO MONITOREADO</span><h1>Del incidente a la experiencia</h1><p>Observa cómo los componentes gestionados afectan a una plataforma de entradas.</p></div><a class="boton secundario" href="{{ url_for('inicio') }}">Volver a Vista general</a></div>
+<section class="ritmo-marco" id="preview-ritmo" data-estado-url="{{ url_for('estado_servicio_monitoreado') }}" aria-label="Representación académica de Ritmo Entradas">
+  <div class="ritmo-herramientas"><span><i aria-hidden="true"></i> Preview del servicio <span class="ritmo-solo-amplio">/ Ritmo Entradas</span></span><button type="button" id="ritmo-expandir" aria-expanded="false" aria-controls="ritmo-sitio">Ampliar vista ↗</button></div>
+  <div class="ritmo-sitio" id="ritmo-sitio" data-tono="{{ representacion.tono }}" data-web="{{ 'activa' if representacion.web else 'caida' }}">
+    <nav class="ritmo-nav" aria-label="Ticketera de ejemplo"><a href="#ritmo-sitio" class="ritmo-logo" aria-label="Ritmo Entradas, inicio">ritmo<span>●</span></a><span class="ritmo-demo">DEMO ACADÉMICA</span><form method="post" data-operacion-ritmo="iniciar">{{ token() }}<input type="hidden" name="accion" value="iniciar"><button class="ritmo-boton ritmo-acceso" type="submit" {{ 'disabled' if not representacion.puede_iniciar }} aria-describedby="ritmo-motivo-acceso">Mi acceso <span aria-hidden="true">↗</span></button></form></nav>
+    <div class="ritmo-alerta" role="status"><span class="ritmo-indicador" aria-hidden="true"></span><div><strong data-campo="titulo_aviso">{{ representacion.titulo_aviso }}</strong><p data-campo="mensaje">{{ representacion.mensaje }}</p></div><span class="ritmo-en-vivo">ESTADO ACTUAL</span></div>
+    <div class="ritmo-salud" aria-label="Estado de los componentes">
+      <div><span>Disponibilidad del período</span><strong><span data-campo="disponibilidad">{{ representacion.disponibilidad }}</span> %</strong><small>SLA objetivo <span data-campo="objetivo_sla">{{ representacion.objetivo_sla }}</span> %</small><strong data-campo="texto_sla">{{ representacion.texto_sla }}</strong><small>El estado actual no borra las caídas del período.</small></div>
+      <div><span>Web principal</span><strong data-campo="texto_web">{{ representacion.texto_web }}</strong><small>Acceso a la plataforma</small></div>
+      <div><span>Pagos</span><strong data-campo="texto_pagos">{{ representacion.texto_pagos }}</strong><small>Compra simulada</small></div>
+      <div><span>Autenticación</span><strong data-campo="texto_autenticacion">{{ representacion.texto_autenticacion }}</strong><small>Acceso de clientes</small></div>
+    </div>
+    <div class="ritmo-contenido">
+      <section class="ritmo-hero">
+        <div class="ritmo-hero-texto"><span class="ritmo-eyebrow">MÚSICA CERCA. EMOCIONES EN VIVO.</span><h2>La noche<br>empieza <em>aquí.</em></h2><p>Descubre tu próximo concierto. Elige una experiencia y siente la música un poco más cerca.</p><a class="ritmo-boton ritmo-boton-lima" href="#ritmo-conciertos">Explorar conciertos <span aria-hidden="true">↓</span></a><small>Temporada 2026 · Lima, Perú · Eventos ficticios</small></div>
+        <div class="ritmo-arte" aria-hidden="true"><span class="ritmo-arte-label">SUBE EL VOLUMEN</span><div class="ritmo-disco"><span>R<br>33⅓</span></div><div class="ritmo-pase">RITMO LIVE<span>24 OCT / LIMA</span><b>ADMITE EMOCIONES</b><div class="ritmo-barras"></div></div><span class="ritmo-estrella">✳</span></div>
+      </section>
+      <section class="ritmo-resultado" id="ritmo-resultado" data-tipo="{{ resultado.tipo if resultado else '' }}" role="status" aria-live="polite" tabindex="-1" {{ 'hidden' if not resultado }}><span class="ritmo-eyebrow">EXPERIENCIA SIMULADA</span><h3 data-resultado-titulo>{{ resultado.titulo if resultado else '' }}</h3><p data-resultado-mensaje>{{ resultado.mensaje if resultado else '' }}</p><button type="button" class="ritmo-texto-boton" id="ritmo-cerrar-resultado">Entendido ×</button></section>
+      <section id="ritmo-conciertos" aria-labelledby="ritmo-conciertos-titulo">
+        <div class="ritmo-seccion-cabecera"><div><span class="ritmo-eyebrow">TU PRÓXIMO PLAN</span><h2 id="ritmo-conciertos-titulo">Encuentra tu ritmo.</h2></div><span>03 conciertos de ejemplo</span></div>
+        <p class="ritmo-bloqueo" id="ritmo-motivo-compra" {{ 'hidden' if representacion.puede_comprar }}>{{ representacion.motivo_compra }}</p>
+        <p class="ritmo-bloqueo" id="ritmo-motivo-acceso" {{ 'hidden' if representacion.puede_iniciar }}>{{ representacion.motivo_acceso }}</p>
+        <div class="ritmo-conciertos">
+        {% for codigo, nombre, lugar in conciertos %}{% set detalle = detalles[codigo] %}
+          <article class="ritmo-concierto"><div class="ritmo-poster ritmo-poster-{{ detalle.estilo }}"><span class="ritmo-fecha"><b>{{ detalle.dia }}</b>{{ detalle.mes }}</span><span class="ritmo-genero">{{ detalle.genero }}</span><div class="ritmo-grafica" aria-hidden="true"><i></i><i></i><i></i></div><strong>{{ nombre }}</strong><small>{{ detalle.frase }}</small></div><div class="ritmo-ficha"><p class="ritmo-horario">{{ detalle.dia }} {{ detalle.mes }} 2026 · {{ detalle.hora }}</p><h3>{{ nombre }}</h3><p>{{ lugar }}</p><div class="ritmo-precio"><span>Precio de ejemplo<br><strong>S/ {{ detalle.precio }}<small>.00</small></strong></span><span class="ritmo-tipo-entrada">ENTRADA GENERAL</span></div><form method="post" data-operacion-ritmo="comprar">{{ token() }}<input type="hidden" name="accion" value="comprar"><input type="hidden" name="concierto" value="{{ codigo }}"><button class="ritmo-boton ritmo-comprar" type="submit" {{ 'disabled' if not representacion.puede_comprar }} aria-describedby="ritmo-motivo-compra">Elegir entrada <span aria-hidden="true">↗</span></button></form><small class="ritmo-sin-cobros">Compra simulada · Sin cobros</small></div></article>
+        {% endfor %}
+        </div>
+      </section>
+      <footer class="ritmo-footer"><div class="ritmo-logo">ritmo<span>●</span></div><p><strong>Representación académica del servicio gestionado por el Centro de Operaciones TI.</strong><br>No es una ticketera real. No vende entradas, no crea cuentas y no procesa pagos. El estado procede de los componentes guardados en PostgreSQL.</p></footer>
+    </div>
+    <div class="ritmo-sincronizacion"><span id="ritmo-conexion">Actualizado <span data-campo="actualizado">{{ representacion.actualizado }}</span> · Consulta automática cada 5 s</span><button type="button" class="ritmo-texto-boton" id="ritmo-actualizar">Actualizar estado ↻</button><a href="{{ url_for('servicio_monitoreado') }}" id="ritmo-recargar" hidden>Recargar vista</a><noscript><a href="{{ url_for('servicio_monitoreado') }}">Recargar estado</a></noscript></div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import paginacion with context %}
+{% block titulo %}Auditoría{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><div><span class="sobre-titulo">SUPERVISIÓN</span><h1>Auditoría de operaciones</h1><p>Accesos, simulaciones y acciones registrados con fecha y usuario.</p></div><span class="contador">{{ pagina.total }} registros</span></div>
+<form class="filtros" method="get">
+  <label>Acción<select name="accion"><option value="">Todas las acciones</option>{% for accion in acciones %}<option value="{{ accion }}" {{ 'selected' if request.args.get('accion') == accion }}>{{ accion|etiqueta }}</option>{% endfor %}</select></label>
+  <label>Usuario<select name="usuario"><option value="">Todos los usuarios</option><option value="sistema" {{ 'selected' if request.args.get('usuario') == 'sistema' }}>Sistema / sin usuario</option>{% for usuario in usuarios %}<option value="{{ usuario.id_usuario }}" {{ 'selected' if request.args.get('usuario') == usuario.id_usuario|string }}>{{ usuario.nombre }}</option>{% endfor %}</select></label>
+  <label>Referencia o código<input name="referencia" maxlength="120" placeholder="INC-2026-0001" value="{{ request.args.get('referencia','') }}"></label>
+  <label>Fecha · Lima<input type="date" name="fecha" value="{{ request.args.get('fecha','') }}"></label>
+  <button class="boton primario">Aplicar filtros</button><a class="limpiar" href="{{ url_for('auditoria') }}">Limpiar</a>
+</form>
+<section class="panel"><table class="tabla-adaptable"><thead><tr><th>Acción</th><th>Usuario</th><th>Referencia</th><th>Fecha · Lima</th></tr></thead><tbody>{% for registro in pagina.items %}<tr><td class="celda-identidad"><strong>{{ registro.accion|etiqueta }}</strong><small>{{ registro.entidad }}</small></td><td data-etiqueta="Usuario">{{ registro.usuario.nombre if registro.usuario else 'Sistema / acceso no autenticado' }}</td><td data-etiqueta="Referencia">{{ registro.referencia or '—' }}</td><td data-etiqueta="Fecha">{{ registro.fecha_hora|fecha }}</td></tr>{% else %}<tr class="fila-vacia"><td colspan="4"><div class="vacio"><strong>Sin registros para estos filtros</strong><p>Prueba otra acción, usuario, referencia o fecha.</p></div></td></tr>{% endfor %}</tbody></table></section>{{ paginacion(pagina) }}
+{% endblock %}

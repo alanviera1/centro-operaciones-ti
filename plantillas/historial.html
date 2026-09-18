@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import tabla_incidentes, filtros_incidentes, paginacion with context %}
+{% block titulo %}Historial{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><div><span class="sobre-titulo">MEMORIA DEL SERVICIO</span><h1>Historial y trazabilidad</h1><p>Incidentes cerrados, responsables y evidencia de cada recuperación.</p></div><a class="boton secundario" href="{{ url_for('archivo_academico') }}">Ciclos anteriores →</a></div>
+<div class="nota-contexto"><strong>Una secuencia verificable.</strong> Consulta detección, recuperación, resolución y cierre. El historial de ciclos de demostración conserva las simulaciones de períodos restablecidos.</div>
+<p class="nota historial-total">{{ pagina.total }} cierres registrados</p>
+{{ filtros_incidentes(componentes, true) }}
+<section class="panel historial-panel">{{ tabla_incidentes(pagina.items, true) }}</section>
+{{ paginacion(pagina) }}
+{% endblock %}

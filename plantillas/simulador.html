@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import estado, token with context %}
+{% block titulo %}Laboratorio de eventos{% endblock %}
+{% block contenido %}
+<div class="cabecera-pagina"><div><span class="sobre-titulo">SIMULACIÓN CONTROLADA</span><h1>Laboratorio de eventos</h1><p>Ejecuta escenarios controlados y observa cómo el Centro de Operaciones TI gestiona el servicio.</p></div></div>
+<div class="nota-contexto">La infraestructura es simulada. Los eventos, incidentes, acciones y cálculos se guardan realmente en PostgreSQL.</div>
+<p class="nota regla-correlacion">{{ regla_correlacion }}</p>
+<p class="nota" data-estado-prevision>Previsión según PostgreSQL. Se actualiza cada diez segundos; el servidor vuelve a validar al ejecutar.</p>
+<div class="escenarios" data-url-prevision="{{ url_for('prevision_simulador') }}">
+{% for clave, escenario in escenarios.items() %}
+{% set prevision = previsiones[clave] %}
+<article class="escenario" data-escenario="{{ clave }}" data-prioridades='{{ prevision.prioridades|tojson }}' data-impacto="{{ escenario.impacto }}" data-urgencia="{{ escenario.urgencia }}">
+  <div class="numero-escenario"><span>ESCENARIO 0{{ loop.index }}</span><span aria-hidden="true">◇</span></div>
+  <h2>{{ escenario.nombre }}</h2><p>{{ escenario.descripcion }}</p>
+  <h3>Eventos que genera</h3><ul>{% for tipo, descripcion, nivel in escenario.eventos %}<li>{{ descripcion }} <small>{{ nivel|etiqueta }}</small></li>{% endfor %}</ul>
+  <div class="resultado-escenario" aria-live="polite"><span data-titulo-prevision>{{ "Estado actual" if prevision.bloqueado else "Resultado previsto" }}</span><strong data-mensaje-prevision>{{ prevision.mensaje }}</strong><small data-prioridad-prevision {{ 'hidden' if prevision.bloqueado }}>Prioridad prevista: {{ prevision.prioridad|etiqueta }}</small><small>{{ escenario.usuarios }} usuarios · {{ escenario.operaciones }} operaciones fallidas estimadas</small></div>
+  <a class="boton secundario" data-incidente-prevision href="{{ url_for('detalle_incidente', identificador=prevision.incidente_id) if prevision.incidente_id else '#' }}" {{ 'hidden' if not prevision.incidente_id }}>{{ prevision.enlace_incidente }}</a>
+  <form method="post" action="{{ url_for('simular', nombre=clave) }}" {{ 'hidden' if prevision.bloqueado }}>{{ token() }}
+    {% if clave == 'base_datos' %}<div class="campos-dobles"><label>Impacto<select name="impacto">{% for valor, nombre in [(1,'Bajo'),(2,'Medio'),(3,'Alto')] %}<option value="{{ valor }}" {{ 'selected' if valor == 2 }}>{{ valor }} · {{ nombre }}</option>{% endfor %}</select></label><label>Urgencia<select name="urgencia">{% for valor, nombre in [(1,'Baja'),(2,'Media'),(3,'Alta')] %}<option value="{{ valor }}" {{ 'selected' if valor == 3 }}>{{ valor }} · {{ nombre }}</option>{% endfor %}</select></label></div>{% endif %}
+    {% if escenario.interrumpe %}<label>Caída inicial simulada (min)<input type="number" name="minutos" min="0" max="120" value="5" required></label>{% else %}<p class="nota">Esta ejecución agrega una advertencia. El escenario se bloquea mientras el componente esté afectado. La regla de correlación permanece en tres advertencias en cinco minutos.</p>{% endif %}
+    <button class="boton primario" type="submit" aria-label="Simular {{ escenario.nombre|lower }}" {{ 'disabled' if prevision.bloqueado }}>Simular escenario →</button>
+  </form>
+</article>
+{% endfor %}
+</div>
+<div class="flujo"><span>Evento</span> → <span>Análisis</span> → <span>Impacto × urgencia</span> → <span>Prioridad</span> → <span>Incidente</span> → <span>Recuperación</span> → <span>Resolución</span> → <span>Cierre</span></div>
+{% if current_user.rol == 'SUPERVISOR' %}
+<section class="panel restablecimiento"><div><span class="sobre-titulo">CONTROL DEL ENTORNO</span><h2>Restablecer entorno académico</h2><p>Guarda una copia del ciclo en el historial de ciclos de demostración, vacía la operación y reinicia los códigos desde 0001. Conserva usuarios, configuración y evidencia.</p></div>
+<form method="post" action="{{ url_for('restablecer') }}" data-confirmar="Se conservarán incidentes, eventos, acciones, interrupciones y auditoría en un ciclo separado. Las tablas operativas se vaciarán, sus secuencias volverán a 1 y todos los componentes quedarán operativos. Los usuarios y la configuración se conservan. El siguiente incidente comenzará en 0001." data-titulo="Restablecer entorno académico" data-boton="Restablecer entorno">{{ token() }}<input type="hidden" name="confirmacion" value="RESTABLECER"><button class="boton peligro" type="submit">Restablecer entorno académico</button></form></section>
+{% endif %}
+{% endblock %}

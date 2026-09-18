@@ -1,0 +1,22 @@
+# Plantilla pendiente de autorización. Repositorio con escudo_ti como raíz.
+services:
+  - type: web
+    name: centro-operaciones-ti
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python preparar_produccion.py && python servidor_wsgi.py
+    healthCheckPath: /salud
+    envVars:
+      - key: ENTORNO
+        value: produccion
+      - key: ENTORNO_ACADEMICO
+        value: "true"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: CLAVE_INICIAL_OPERADOR
+        sync: false
+      - key: CLAVE_INICIAL_SUPERVISOR
+        sync: false
