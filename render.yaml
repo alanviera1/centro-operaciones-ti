@@ -1,4 +1,9 @@
-# Plantilla pendiente de autorización. Repositorio con escudo_ti como raíz.
+databases:
+  - name: centro-operaciones-ti-db
+    plan: free
+    databaseName: centro_operaciones_ti
+    user: centro_operaciones_ti
+
 services:
   - type: web
     name: centro-operaciones-ti
@@ -15,7 +20,9 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: centro-operaciones-ti-db
+          property: connectionString
       - key: CLAVE_INICIAL_OPERADOR
         sync: false
       - key: CLAVE_INICIAL_SUPERVISOR

@@ -14,6 +14,7 @@ respaldo_*/
 *.dump
 *.backup
 credenciales_locales.txt
+credenciales_*.txt
 .env.*
 !.env.ejemplo
 *.tmp
